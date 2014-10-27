@@ -1,0 +1,16 @@
+{
+  "name": "find_my_iphone",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "node-notifier": "^4.0.2",
+    "request": "^2.47.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
