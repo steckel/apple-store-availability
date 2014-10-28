@@ -11,9 +11,11 @@ var Store = function() {
   "use strict";
 
   function Store(arg$0) {
-    var address = arg$0.address, parts = arg$0.parts;
+    var address = arg$0.address, parts = arg$0.parts, city = arg$0.city, storeNumber = arg$0.storeNumber;
     this.address = address;
     this.parts = parts;
+    this.city = city;
+    this.storeNumber = storeNumber;
   }
 
   $__Object$defineProperties(Store.prototype, {
@@ -48,38 +50,69 @@ var Store = function() {
   });
 
   $__Object$defineProperties(Store, {
-    findStoresWithParts: {
-      value: function(arg$1, cb) {
+    deserialize: {
+      value: function(body) {
+        try {
+          var responseBody = JSON.parse(body);
+        } catch (e) {
+          return e;
+        }
+
+        // FIXME
+        var firstStore = responseBody.body.stores[0],
+            parts = Object.keys(firstStore.partsAvailability);
+
+        return responseBody.body.stores.map(function(store) {
+          store.parts = parts.map(function(key) {
+            var partAvailability = store.partsAvailability[key],
+                id = key,
+                available = partAvailability.storeSelectionEnabled;
+            return new Part({id: id, available: available});
+          });
+
+          return new Store(store);
+        });
+      },
+
+      enumerable: false,
+      writable: true
+    },
+
+    _requestStoresWithParts: {
+      value: function(arg$1) {
         var zip = arg$1.zip, parts = arg$1.parts;
-        var url = this.availabilitySearchURL({zip: zip, parts: parts});
+        var url = this._availabilitySearchURL({zip: zip, parts: parts});
 
         return new Promise(function(resolve, reject) {
-          request(url, function(error, response) {
-            if (error) return reject(error);
+          request(url, function(error, arg$2) {
+            var body = arg$2.body;
 
-            try {
-              var responseBody = JSON.parse(response.body);
-            } catch (e) {
-              return reject(e);
+            if (error) {
+              return reject(error);
+            } else {
+              var stores = this.deserialize(body);
+              if (typeof stores === Error) {
+                reject(error);
+              } else {
+                resolve(stores);
+              }
             }
+          }.bind(this));
+        }.bind(this));
+      },
 
-            var stores = responseBody.body.stores.map(function(store) {
-              store.parts = parts.map(function(key) {
-                var partAvailability = store.partsAvailability[key],
-                    id = key,
-                    available = partAvailability.storeSelectionEnabled;
+      enumerable: false,
+      writable: true
+    },
 
-                return new Part({id: id, available: available});
-              });
+    findStoresWithParts: {
+      value: function(arg$3) {
+        var zip = arg$3.zip, parts = arg$3.parts;
 
-              return new Store(store);
-            });
-
-            stores = stores.filter(function(store) {
-              return store.hasAvailableParts;
-            });
-
-            return resolve(stores);
+        return this._requestStoresWithParts({zip: zip, parts: parts})
+        .then(function(stores) {
+          return stores.filter(function(store) {
+            return store.hasAvailableParts;
           });
         });
       },
@@ -88,9 +121,9 @@ var Store = function() {
       writable: true
     },
 
-    availabilitySearchURL: {
-      value: function(arg$2) {
-        var zip = arg$2.zip, parts = arg$2.parts;
+    _availabilitySearchURL: {
+      value: function(arg$4) {
+        var zip = arg$4.zip, parts = arg$4.parts;
         var url = 'http://store.apple.com/us/retailStore/availabilitySearch?';
 
         parts.forEach(function(part, index) {

@@ -2,14 +2,24 @@
 
 const AppleStore = require('./store'),
       notifier = require('node-notifier'),
-      nc = new notifier.NotificationCenter(),
-      parts = ['MG632LL/A'],
+      nc = new notifier.NotificationCenter();
+
+/**
+ * Options
+ */
+const parts = ['MG632LL/A', 'MG602LL/A'],
       zip = 94117,
-      minutes = 2;
+      minutes = 2,
+      quitOnSuccess = false;
 
 function timestamp() {
   var now = new Date();
-  return `${now.getHours()}:${now.getMinutes()}`;
+  var hour = now.getHours().toString();
+  hour = hour.length === 1 ? `0${hour}` : ""+hour;
+  var min = now.getMinutes().toString();
+  min = min.length === 1 ? `0${min}` : ""+min;
+
+  return `${hour}:${min}`;
 }
 
 console.log(`Watching the Apple store for part(s) ${parts} in ${zip}`);
@@ -18,6 +28,12 @@ console.log('-----------------------------');
 
 var timer = setInterval(function() {
   AppleStore.findStoresWithParts({parts, zip}).then(function(stores) {
+
+    // TODO: Make this part of the .findStoresWithParts query
+    // Further filter down the results by city...
+    // stores = stores.filter((store) => store.city === "San Francisco");
+    stores = stores.filter((store) => store.storeNumber === "R075");
+
     if (stores.length > 0) {
       console.log(`SUCCESS ${timestamp()} – Available!`);
       console.log('-----------------------------');
@@ -35,7 +51,7 @@ var timer = setInterval(function() {
         "sound": "Glass"
       });
 
-      clearInterval(timer);
+      if (quitOnSuccess) clearInterval(timer);
 
     } else {
       console.log(`X ${timestamp()} – Unavailable`);

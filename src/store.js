@@ -6,9 +6,11 @@ var Part = require('./part'),
     querystring = require('querystring');
 
 class Store {
-  constructor({address, parts}) {
+  constructor({address, parts, city, storeNumber}) {
     this.address = address;
     this.parts = parts;
+    this.city = city;
+    this.storeNumber = storeNumber;
   }
 
   get availableParts() {
@@ -23,39 +25,55 @@ class Store {
     return this.address.address;
   }
 
-  static findStoresWithParts({zip, parts}, cb) {
-    var url = this.availabilitySearchURL({zip, parts});
+  static deserialize(body) {
+    try {
+      var responseBody = JSON.parse(body);
+    } catch (e) {
+      return e;
+    }
 
-    return new Promise(function(resolve, reject) {
-      request(url, function(error, response) {
-        if (error) return reject(error);
+    // FIXME
+    var firstStore = responseBody.body.stores[0],
+        parts = Object.keys(firstStore.partsAvailability);
 
-        try {
-          var responseBody = JSON.parse(response.body);
-        } catch (e) {
-          return reject(e);
-        }
-
-        var stores = responseBody.body.stores.map(function(store) {
-          store.parts = parts.map(function(key) {
-            var partAvailability = store.partsAvailability[key],
-                id = key,
-                available = partAvailability.storeSelectionEnabled;
-
-            return new Part({id, available});
-          });
-
-          return new Store(store);
-        });
-
-        stores = stores.filter((store) => store.hasAvailableParts);
-
-        return resolve(stores);
+    return responseBody.body.stores.map(function(store) {
+      store.parts = parts.map(function(key) {
+        var partAvailability = store.partsAvailability[key],
+            id = key,
+            available = partAvailability.storeSelectionEnabled;
+        return new Part({id, available});
       });
+
+      return new Store(store);
     });
   }
 
-  static availabilitySearchURL({zip, parts}) {
+  static _requestStoresWithParts({zip, parts}) {
+    var url = this._availabilitySearchURL({zip, parts});
+    return new Promise((resolve, reject) => {
+      request(url, function(error, {body}) {
+        if (error) {
+          return reject(error);
+        } else {
+          var stores = this.deserialize(body);
+          if (typeof stores === Error) {
+            reject(error);
+          } else {
+            resolve(stores);
+          }
+        }
+      }.bind(this));
+    });
+  }
+
+  static findStoresWithParts({zip, parts}) {
+    return this._requestStoresWithParts({zip, parts})
+    .then(function(stores) {
+      return stores.filter((store) => store.hasAvailableParts);
+    });
+  }
+
+  static _availabilitySearchURL({zip, parts}) {
     var url = 'http://store.apple.com/us/retailStore/availabilitySearch?';
 
     parts.forEach(function(part, index) {
