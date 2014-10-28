@@ -3,7 +3,7 @@
 const AppleStore = require('./store'),
       notifier = require('node-notifier'),
       nc = new notifier.NotificationCenter(),
-      parts = ['MG632LL/A'/*, 'MG602LL/A'*/],
+      parts = ['MG632LL/A'],
       zip = 94117,
       minutes = 2;
 
