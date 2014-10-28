@@ -9,17 +9,17 @@ const AppleStore = require('./store'),
 
 function timestamp() {
   var now = new Date();
-  return "" + now.getHours() + ":" + now.getMinutes() + "";
+  return `${now.getHours()}:${now.getMinutes()}`;
 }
 
-console.log("Watching the Apple store for part(s) " + parts + " in " + zip + "");
-console.log("Checking every " + minutes + " minutes.");
+console.log(`Watching the Apple store for part(s) ${parts} in ${zip}`);
+console.log(`Checking every ${minutes} minutes.`);
 console.log('-----------------------------');
 
 var timer = setInterval(function() {
-  AppleStore.findStoresWithParts({parts: parts, zip: zip}).then(function(stores) {
+  AppleStore.findStoresWithParts({parts, zip}).then(function(stores) {
     if (stores.length > 0) {
-      console.log("SUCCESS " + timestamp() + " – Available!");
+      console.log(`SUCCESS ${timestamp()} – Available!`);
       console.log('-----------------------------');
       stores.forEach(function(store) {
         console.log(store.toString());
@@ -31,17 +31,17 @@ var timer = setInterval(function() {
 
       nc.notify({
         "title": "Apple Store Availability",
-        "message": "Available at " + stores.length + " store(s)",
+        "message": `Available at ${stores.length} store(s)`,
         "sound": "Glass"
       });
 
       clearInterval(timer);
 
     } else {
-      console.log("X " + timestamp() + " – Unavailable");
+      console.log(`X ${timestamp()} – Unavailable`);
     }
   }, function(error) {
-    console.warn("! " + timestamp() + " – " + error + "");
+    console.warn(`! ${timestamp()} – ${error}`);
     nc.notify({
       "title": "iPhone Availability",
       "subtitle": "Error",
