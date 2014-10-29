@@ -36,7 +36,7 @@ var defaults = {
 };
 
 program
-  .version('1.0.0')
+  .version('1.0.2')
   .usage('[options] [zip] [part-numbers...]')
   .option('-w, --watch',
           'Watch (poll) for changes in availability')
