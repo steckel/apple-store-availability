@@ -22,5 +22,9 @@
     "name": "Curtis Steckel",
     "email": "curtis.steckel@gmail.com"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type" : "git",
+    "url": "https://github.com/steckel/apple-store-availability"
+  }
 }
