@@ -63,7 +63,7 @@ if ((typeof zip === "undefined" || zip === null) ||
 
 if (options.watch) {
   run({parts: parts, zip: zip});
-  var interval = setTimeout(function() {
+  var interval = setInterval(function() {
     run({parts: parts, zip: zip}).then(function(success) {
       if(success && options["watch-quit-on-success"]) clearInterval(interval);
     });
