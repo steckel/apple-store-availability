@@ -66,6 +66,10 @@ class Store {
     });
   }
 
+  static queryForParts({zip, parts}) {
+    return this._requestStoresWithParts({zip, parts});
+  }
+
   static findStoresWithParts({zip, parts}) {
     return this._requestStoresWithParts({zip, parts})
     .then(function(stores) {
