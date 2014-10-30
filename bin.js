@@ -39,7 +39,7 @@ var defaults = {
 };
 
 program
-  .version('1.0.2')
+  .version('1.0.3')
   .usage('[options] [zip-code] [part-numbers...]')
   .option('-w, --watch', 'Watch (poll) for changes in availability')
   // Does <n> not work here...?
