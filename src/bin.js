@@ -1,9 +1,9 @@
 // #!/usr/bin/env node
 
 const program = require('commander'),
-      colors = require('colors/safe'),
       AppleStore = require('./store'),
-      Table = require('cli-table'),
+      Part = require('./part'),
+      storesAndPartsTable = require('./table'),
       notifier = require('node-notifier'),
       nc = new notifier.NotificationCenter();
 
@@ -32,20 +32,19 @@ var defaults = {
   "watch": false,
   "watch-interval": 120,
   "watch-quit-on-success": false,
-  "notify": false
+  "notify": false,
+  "verbose": false
 };
 
 program
   .version('1.0.2')
-  .usage('[options] [zip] [part-numbers...]')
-  .option('-w, --watch',
-          'Watch (poll) for changes in availability')
-  .option('-wi, --watch-interval <n>',
-          'The interval (in seconds) to watch (defaults to 120)')
-  .option('-wq, --watch-quit-on-success',
-          'Quit watching once availability is found')
-  .option('-n, --notify',
-          'Trigger a OS notification on success')
+  .usage('[options] [zip-code] [part-numbers...]')
+  .option('-w, --watch', 'Watch (poll) for changes in availability')
+  // Does <n> not work here...?
+  // .option('-wi, --watch-interval <n>', 'The interval (in seconds) to watch (defaults to 120)', parseInt)
+  .option('-wq, --watch-quit-on-success', 'Quit watching once availability is found')
+  .option('-n, --notify', 'Trigger a OS notification on success')
+  .option('-v, --verbose', 'Log activity')
   .parse(process.argv);
 
 var options = parseOptions(defaults, program);
@@ -61,51 +60,57 @@ if ((typeof zip === "undefined" || zip === null) ||
   return;
 }
 
+// Meh
+parts = parts.map((id) => Part.parseID(id));
+
+verbose(`Querying the Apple Store for part(s) ${parts} within the zip code ${zip}.`);
+if (options.watch) {
+  verbose(`Watching (polling) every ${options["watch-interval"]} seconds.`);
+  if (options['watch-quit-on-success']) {
+    verbose('Will exit on success.');
+  } else {
+    verbose('Will continue watching on success.');
+  }
+
+}
+if (options.watch || options.notify) {
+  verbose('OSX Notifications on success and error.');
+}
+
 if (options.watch) {
   run({parts, zip});
   var interval = setInterval(function() {
     run({parts, zip}).then(function(success) {
       if(success && options["watch-quit-on-success"]) clearInterval(interval);
+    }, function(error) {
+      console.warn(error);
     });
-  }, options["watch-interval"] * 100);
+  }, options["watch-interval"] * 1000);
 } else {
-  run({parts, zip});
+  run({parts, zip}).then(null,function(error) {
+    console.warn(error);
+  });
+}
+
+function verbose(...args) {
+  if (options.verbose) console.log(timestamp(), ...args);
 }
 
 function run({parts, zip}) {
-  return AppleStore.findStoresWithParts({parts, zip}).then(function(stores) {
+  console.log(''); // Spacer
+  verbose('Querying...');
+  return AppleStore.queryForParts({parts, zip}).then(function(stores) {
+    verbose('...query complete.');
+    if (options.verbose) console.log('');
 
     // TODO: Make this part of the .findStoresWithParts query
     // Further filter down the results by city...
     // stores = stores.filter((store) => store.city === "San Francisco");
     // stores = stores.filter((store) => store.storeNumber === "R075");
 
-    if (stores.length > 0) {
-      var headerRow = parts.slice(0);
-      headerRow.unshift("");
-
-      var table = new Table({
-        head: headerRow,
-        style: {
-          head:[],
-          border:[]
-        }
-      });
-
-      stores.forEach(function(store) {
-        var tableRow = {};
-        tableRow[store.toString()] = store.parts.map(function(part) {
-          if (part.available) {
-            return colors.green("Available");
-          } else {
-            return colors.red("Unavailable");
-          }
-        });
-        table.push(tableRow);
-      });
-
-      console.log(`${timestamp()} - SUCCESS`);
-      console.log(table.toString());
+    var success = stores.filter((store) => store.hasAvailableParts).length;
+    if (success) {
+      verbose(`Part(s) available within ${zip}.`);
       if (options.notify || options.watch) {
         nc.notify({
           "title": "Apple Store Availability",
@@ -113,11 +118,12 @@ function run({parts, zip}) {
           "sound": "Glass"
         });
       }
-
-      return true;
     } else {
-      return false;
+      verbose(`Part(s) **not** available within ${zip}.`);
     }
+    var table = storesAndPartsTable({stores, parts});
+    console.log(table.toString());
+    return success;
   }, function(error) {
     console.warn("Something seems to have gone wrong...");
     console.warn(error);
@@ -128,6 +134,6 @@ function run({parts, zip}) {
         "subtitle": "Error",
         "message": error
       });
-    };
+    }
   });
 }

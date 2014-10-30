@@ -105,9 +105,19 @@ var Store = function() {
       writable: true
     },
 
-    findStoresWithParts: {
+    queryForParts: {
       value: function(arg$3) {
         var zip = arg$3.zip, parts = arg$3.parts;
+        return this._requestStoresWithParts({zip: zip, parts: parts});
+      },
+
+      enumerable: false,
+      writable: true
+    },
+
+    findStoresWithParts: {
+      value: function(arg$4) {
+        var zip = arg$4.zip, parts = arg$4.parts;
 
         return this._requestStoresWithParts({zip: zip, parts: parts})
         .then(function(stores) {
@@ -122,8 +132,8 @@ var Store = function() {
     },
 
     _availabilitySearchURL: {
-      value: function(arg$4) {
-        var zip = arg$4.zip, parts = arg$4.parts;
+      value: function(arg$5) {
+        var zip = arg$5.zip, parts = arg$5.parts;
         var url = 'http://store.apple.com/us/retailStore/availabilitySearch?';
 
         parts.forEach(function(part, index) {

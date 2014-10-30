@@ -16,7 +16,7 @@
     "esnext": "^0.12.0"
   },
   "scripts": {
-    "test": "echo \"LOL\" && exit 1"
+    "test": "node test/index.js"
   },
   "author": {
     "name": "Curtis Steckel",
